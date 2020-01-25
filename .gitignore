@@ -2,6 +2,6 @@
 node_modules/
 .vscode/
 data/
-images/
-raw_data/
-fonts/
+images/*
+raw_data/*
+fonts/*
