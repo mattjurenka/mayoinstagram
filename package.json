@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc",
+    "dev": "ts-node-dev --respawn --transpileOnly ./src/server.ts"
   },
   "author": "",
   "license": "ISC",
@@ -12,13 +14,22 @@
     "@slack/events-api": "^2.3.0",
     "@slack/interactive-messages": "^1.4.1",
     "@slack/web-api": "^5.7.0",
+    "@types/mongoose": "^5.5.41",
+    "@types/unsplash-js": "^6.0.1",
     "body-parser": "^1.19.0",
     "csv-parse": "^4.8.5",
     "csv-parser": "^2.3.2",
     "dotenv": "^8.2.0",
+    "es6-promise": "^4.2.8",
     "express": "^4.17.1",
+    "isomorphic-fetch": "^2.2.1",
+    "jimp": "^0.9.3",
+    "lodash": "^4.17.15",
     "mongodb": "^3.5.0",
     "mongoose": "^5.8.7",
-    "request": "^2.88.0"
+    "request": "^2.88.0",
+    "ts-node-dev": "^1.0.0-pre.44",
+    "typescript": "^3.7.5",
+    "unsplash-js": "^6.0.0"
   }
 }
