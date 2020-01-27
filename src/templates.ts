@@ -1,11 +1,5 @@
-import { IQuote } from "./models"
 import { capitalize } from "lodash"
-
-interface ISimpleInteractiveElement {
-    text: string,
-    command: string,
-    params: string[]
-}
+import { ISimpleInteractiveElement, IQuote } from ".."
 
 const option_template = (simple_element: ISimpleInteractiveElement): string => {
     return `{
@@ -192,9 +186,21 @@ const get_confirm_background_blocks = (quote: IQuote, image_data: any): string =
     ]`
 }
 
+const get_plaintext_blocks = (text: string): string => {
+    return `[{
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": "${text}",
+            "emoji": true
+        }
+    }]`
+}
+
 export {
     get_category_selection_blocks,
     get_pick_quote_section,
     get_confirm_background_blocks,
-    get_image_category_selection_blocks
+    get_image_category_selection_blocks,
+    get_plaintext_blocks
 }

@@ -6,12 +6,13 @@ import bodyParser = require('body-parser')
 
 import { createEventAdapter } from '@slack/events-api'
 import { createMessageAdapter } from '@slack/interactive-messages'
-import { parse_command_string } from "./utils"
+import { parse_command_string, find_or_create, find_or_create_session, post_text, get_respond_fn } from "./utils"
 
 import {
     overflow_commands,
     button_commands,
-    message_commands
+    message_commands,
+    is_valid_overflow_command
 } from "./commands"
 
 import { port } from "./settings"
@@ -24,13 +25,23 @@ app.use('/slack/events', slackEvents.expressMiddleware());
 app.use('/slack/actions', slackInteractions.expressMiddleware())
 app.use(bodyParser.json());
 
-slackInteractions.action({ type: 'overflow' }, (payload, respond) => {
-    const [command, params] = parse_command_string(payload.actions[0].selected_option.value)
-    console.log("Overflow", command, params)
-    overflow_commands[command](params, respond)
-    return {
-        text: "Processing..."
+const proccessing_text = {
+    text: "Processing..."
+}
+
+slackInteractions.action({ type: 'overflow' }, async (payload) => {
+    const channel_id = payload.channel.id
+    const [command_str, params] = parse_command_string(payload.actions[0].selected_option.value)
+    console.log("Overflow", command_str, params)
+    
+    const session = await find_or_create_session(channel_id)
+    
+    if (is_valid_overflow_command(command_str)) {
+        overflow_commands[command_str](session, params, get_respond_fn(session))
+    } else {
     }
+
+    return proccessing_text
 })
 
 slackInteractions.action({ type: 'button' }, (payload, respond) => {

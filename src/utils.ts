@@ -1,28 +1,26 @@
-import { QuoteModel, IImage } from "./models"
+import { QuoteModel, SessionModel } from "./models"
 import { WebClient } from '@slack/web-api'
 import { Model } from "mongoose"
-import { images_folder, fonts_folder } from "./settings"
+import { images_folder, fonts_folder, session_timeout_ms } from "./settings"
 import { join } from "path"
 
 const web = new WebClient(process.env.SLACK_BOT_AUTH_TOKEN)
 
-const post_text = (text: string, event, log_message: string) => {
-    web.chat.postMessage({
+const post_text = async (text: string, event: any, log_message: string) => {
+    await web.chat.postMessage({
         text,
         channel: event.channel
-    }).then(() => {
-        console.log(log_message)
     })
+    console.log(log_message)
 }
 
-const post_blocks = (blocks, event, log_message: string) => {
-    web.chat.postMessage({
+const post_blocks = async (blocks: any, event: any, log_message: string) => {
+    await web.chat.postMessage({
         text: "",
         blocks,
         channel: event.channel
-    }).then(() => {
-        console.log(log_message)
     })
+    console.log(log_message)
 }
 
 const parse_command_string = (cmd_string: string): [string, string[]] => {
@@ -44,15 +42,59 @@ const get_random_quote_instances = async (category: string) => {
     ]).exec()
 }
 
-const find_or_create = (model: any, query: any) => {
-    return model.findOne(query, (err: any, image: IImage) => {
-        return err ? model.create(query) : image
-    })
+const log_error = (err: Error, task_description: string): void => {
+    console.log(`${err.name} while ${task_description}: ${err.message}`)
+}
+
+const find_or_create = async (model: any, query: any): Promise<any> => {
+    try {
+        return await model.findOne(query).orFail()
+    } catch(find_err) {
+        try {
+            return await model.create(query)
+        } catch(create_err) {
+            log_error(create_err, "creating document after not found")
+        }
+    }
+}
+
+const find_or_create_session = async (channel_id: string) => {
+    const now = new Date()
+    try {
+        return SessionModel.findOneAndUpdate({
+            channel: channel_id,
+            last_updated: {
+                "$gte": new Date(now.getTime() - session_timeout_ms),
+                "$lte": now
+            },
+        }, {
+            last_updated: now
+        }).orFail()
+    } catch(find_err) {
+        try {
+            return SessionModel.create({
+                channel: channel_id,
+                last_updated: now
+            })
+        } catch(create_err) {
+            log_error(create_err, "creating session after not found")
+        }
+    }
 }
 
 const get_image_filepath = (filename: string): string => join(images_folder, filename)
 
-const get_font_filepath = (filename: string): string => join(fonts_folder, filename)
+const get_font_filepath = (font: string): string => join(fonts_folder, font, `${font}.fnt`)
+
+const get_respond_fn = (session: ISession) => {
+    return (blocks: any) => {
+        web.chat.postMessage({
+            text: "",
+            channel: session.channel_id,
+            blocks: JSON.parse(blocks)
+        })
+    }
+}
 
 export {
     post_text,
@@ -61,5 +103,8 @@ export {
     get_random_quote_instances,
     find_or_create,
     get_image_filepath,
-    get_font_filepath
+    get_font_filepath,
+    log_error,
+    find_or_create_session,
+    get_respond_fn
 }

@@ -6,10 +6,11 @@ import {
     get_category_selection_blocks,
     get_pick_quote_section,
     get_confirm_background_blocks,
-    get_image_category_selection_blocks
+    get_image_category_selection_blocks,
+    get_plaintext_blocks
 } from "./templates"
-import { post_blocks, post_text, get_random_quote_instances, find_or_create, get_image_filepath } from "./utils"
-import { QuoteModel, IQuote, ImageModel, IImage } from "./models"
+import { post_blocks, post_text, get_random_quote_instances, find_or_create, get_image_filepath, log_error } from "./utils"
+import { QuoteModel, ImageModel } from "./models"
 import {
     quote_categories,
     quotes_filepath,
@@ -19,17 +20,18 @@ import {
     get_inspirational_background_json,
     get_image_url_from_id,
     crop_to_square,
-    write_text
+    write_text_over_box
 } from './images'
+import { ISession, IQuote, IImage } from '..';
 
 // Loads quotes from a hardcoded txt file to MongoDB
-const load_quotes = (event: symbol) => {
+const load_quotes = (event: symbol): void => {
     fs.createReadStream(quotes_filepath)
         .on('error', () => {
             console.log("Error Occurred")
         })
         .pipe(csv({separator: ';'}))
-        .on('data', (row) => {
+        .on('data', (row: any) => {
             QuoteModel.create({
                 quote: row.QUOTE,
                 author: row.AUTHOR,
@@ -46,99 +48,60 @@ const load_quotes = (event: symbol) => {
 }
 
 // Sends a block where a user can select a category of quotes
-const select_quotes = (params: string[], event) => {
-    post_blocks(
-        get_category_selection_blocks(quote_categories),
-        event,
-        "Asked for quotes"
-    )
+const select_quotes = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
+    respond(get_category_selection_blocks(quote_categories))
 }
 
-// Sends 5 quotes given a category
-const get_quotes = (params: string[], respond: (data: any) => void) => {
+//Sends 5 quotes given a category
+const get_quotes = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
     const [category] = params
-    get_random_quote_instances(category).then((quotes) => {
-        respond({
-            blocks: JSON.parse(get_pick_quote_section(quotes, category))
-        })
-    })
-}
-
-const get_quotes_from_message = (params: string[], event) => {
-    const [category] = params
-    get_random_quote_instances(category).then((quotes) => {
-        post_blocks(
-            JSON.parse(get_pick_quote_section(quotes, category)),
-            event,
-            "Quotes Generated"
-        )
-    })
+    const quotes = await get_random_quote_instances(category)
+    respond(get_pick_quote_section(quotes, category))
 }
 
 // Disables a quote given a quote ID
-const disable_quote = (params: string[], respond: (data: any) => void) => {
+const disable_quote = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
     const [quote_id] = params
-    QuoteModel.findOneAndUpdate({ _id: quote_id }, { disabled: true }, (err, quote) => {
-        // @ts-ignore: Bug with mongoose model constructor
-        // prevents types from working well with certain functions
-        respond({ text: `Disabled the quote: ${quote.quote}` })
-    })
+    try {
+        const quote = await QuoteModel.findOneAndUpdate({ _id: quote_id }, { disabled: true }).orFail()
+        respond(get_plaintext_blocks(`Disabled the quote: ${quote.quote}`))
+    } catch (err) {
+        log_error(err, "disabling quote")
+    }
 }
 
 // Disables all quotes by a given author
-const disable_author_of_quote = (params: string[], respond: (data: any) => void) => {
+const disable_author_of_quote = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
     const [quote_id] = params
-    QuoteModel.findById(quote_id, (err, quote: IQuote) => {
-        const author = quote.author
-        QuoteModel.updateMany({ author }, { disabled: true }, () => {
-            respond({ text: `Disabled all quotes from ${author}` })
-        })
-    })
+    const quote = await QuoteModel.findById(quote_id)
+    const author = quote.author
+    await QuoteModel.updateMany({ author }, { disabled: true })
+    respond(get_plaintext_blocks(`Disabled all quotes from ${author}`))
 }
 
-const confirm_image = (params: string[], respond: (data: any) => void) => {
+const confirm_image = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
     const [quote_id] = params
-    get_inspirational_background_json()
-        .then((image_data: any) => {
-            find_or_create(ImageModel, {
-                unsplash_id: image_data.id
-            }).then((image: IImage) => {
-                QuoteModel.findById(quote_id, (err, quote: IQuote) => {
-                    if(err) console.log(err)
-                    respond({
-                        blocks: JSON.parse(get_confirm_background_blocks(quote, image_data))
-                    })
-                })
-            })
-        })
+    const image_data = await get_inspirational_background_json()
+    await find_or_create(ImageModel, { unsplash_id: image_data.id })
+    const quote = await QuoteModel.findById(quote_id)
+    respond(get_confirm_background_blocks(quote, image_data))
 }
 
-const select_image_category = (params: string[], respond: (data: any) => void) => {
+const select_image_category = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
     const [quote_id] = params
-    QuoteModel.findById(quote_id, (err, quote: IQuote) => {
-        respond({
-            blocks: JSON.parse(get_image_category_selection_blocks(image_categories, quote))
-        })
-    })
+    const quote = await QuoteModel.findById(quote_id)
+    respond(get_image_category_selection_blocks(image_categories, quote))
 }
 
-const create_post = (params: string[], respond: (data: any) => void) => {
+const create_post = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
     const [quote_id, image_id] = params
-    get_image_url_from_id(image_id)
-        .then((url: string) => {
-            QuoteModel.findById(quote_id, (err, quote: IQuote) => {
-                read(url)
-                    .then(crop_to_square)
-                    .then(write_text(quote))
-                    .then(image => {
-                        image.write(get_image_filepath(`${image_id}.png`))
-                    })
-                    .catch(err => {
-                        console.log(err)
-                    })
-            })
-        })
-    
+    const url = await get_image_url_from_id(image_id)
+    const quote = await QuoteModel.findById(quote_id)
+    const image = await read(url)
+    const cropped = await crop_to_square(image)
+    const with_text = await write_text_over_box(quote, cropped)
+    with_text.write(get_image_filepath(`${image_id}.png`))
+    respond(get_plaintext_blocks(`File ${image_id}.png created`))
 }
 
 // All map the user-supplied command string to its handler function
@@ -156,13 +119,28 @@ const button_commands = {
 }
 
 const message_commands = {
-    "get-quotes": get_quotes_from_message,
+    "get-quotes": get_quotes,
     "select-quotes": select_quotes,
     "load-quotes": load_quotes
+}
+
+const is_valid_overflow_command = (command_str: string): command_str is keyof typeof overflow_commands => {
+    return command_str in overflow_commands
+}
+
+const is_valid_button_command = (command_str: string): command_str is keyof typeof button_commands => {
+    return command_str in overflow_commands
+}
+
+const is_valid_message_command = (command_str: string): command_str is keyof typeof message_commands => {
+    return command_str in overflow_commands
 }
 
 export {
     overflow_commands,
     button_commands,
-    message_commands
+    message_commands,
+    is_valid_overflow_command,
+    is_valid_button_command,
+    is_valid_message_command
 }
