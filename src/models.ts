@@ -1,4 +1,9 @@
-import { connect, connection, Schema, model, Types } from 'mongoose'
+import { connect, connection, Schema, model, set} from 'mongoose'
+
+set('useNewUrlParser', true);
+set('useFindAndModify', false);
+set('useCreateIndex', true);
+set('useUnifiedTopology', true);
 
 import { database_string } from "./settings"
 import { IQuote, ISession, IImage } from '..';

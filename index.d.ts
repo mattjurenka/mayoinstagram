@@ -33,7 +33,7 @@ interface SessionDataSchema extends Document {
 
 interface ISession extends Document {
     _id: string,
-    channel_id: string,
+    channel: string,
     last_updated: Date,
     session_data: SessionDataSchema
 }
@@ -44,3 +44,5 @@ interface ICoordinate {
     x: number,
     y: number
 }
+
+type Action = ("button" | "overflow" | "message")

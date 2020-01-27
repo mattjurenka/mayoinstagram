@@ -1,8 +1,8 @@
 import { QuoteModel, SessionModel } from "./models"
 import { WebClient } from '@slack/web-api'
-import { Model } from "mongoose"
 import { images_folder, fonts_folder, session_timeout_ms } from "./settings"
 import { join } from "path"
+import { ISession } from ".."
 
 const web = new WebClient(process.env.SLACK_BOT_AUTH_TOKEN)
 
@@ -60,26 +60,24 @@ const find_or_create = async (model: any, query: any): Promise<any> => {
 
 const find_or_create_session = async (channel_id: string) => {
     const now = new Date()
-    try {
-        return SessionModel.findOneAndUpdate({
+    return SessionModel.findOneAndUpdate({
+        channel: channel_id,
+        last_updated: {
+            "$gte": new Date(now.getTime() - session_timeout_ms),
+            "$lte": now
+        },
+    }, {
+        last_updated: now
+    })
+    .orFail()
+    .catch(async () => {
+        return SessionModel.create({
             channel: channel_id,
-            last_updated: {
-                "$gte": new Date(now.getTime() - session_timeout_ms),
-                "$lte": now
-            },
-        }, {
             last_updated: now
-        }).orFail()
-    } catch(find_err) {
-        try {
-            return SessionModel.create({
-                channel: channel_id,
-                last_updated: now
-            })
-        } catch(create_err) {
+        }).catch(create_err => {
             log_error(create_err, "creating session after not found")
-        }
-    }
+        })
+    })
 }
 
 const get_image_filepath = (filename: string): string => join(images_folder, filename)
@@ -90,7 +88,7 @@ const get_respond_fn = (session: ISession) => {
     return (blocks: any) => {
         web.chat.postMessage({
             text: "",
-            channel: session.channel_id,
+            channel: session.channel,
             blocks: JSON.parse(blocks)
         })
     }

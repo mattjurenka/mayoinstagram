@@ -141,7 +141,7 @@ const get_image_section = (url: string, title: string): string => {
     }`
 }
 
-const get_pick_quote_section = (quotes, category: string): string => {
+const get_pick_quote_section = (quotes: IQuote[], category: string): string => {
     const quote_sections = quotes.map(get_quote_section)
     const action_buttons = [{
         text: "Refresh Quotes",

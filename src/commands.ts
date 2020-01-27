@@ -1,5 +1,5 @@
-import fs from 'fs'
-import csv from 'csv-parser'
+import * as fs from 'fs'
+import * as csv from 'csv-parser'
 import { read } from 'jimp';
 
 import {
@@ -136,11 +136,21 @@ const is_valid_message_command = (command_str: string): command_str is keyof typ
     return command_str in overflow_commands
 }
 
+const command_structure = {
+    overflow: {
+        commands: overflow_commands,
+        validator: is_valid_overflow_command
+    },
+    button: {
+        commands: button_commands,
+        validator: is_valid_button_command
+    },
+    message: {
+        commands: message_commands,
+        validator: is_valid_message_command
+    }
+}
+
 export {
-    overflow_commands,
-    button_commands,
-    message_commands,
-    is_valid_overflow_command,
-    is_valid_button_command,
-    is_valid_message_command
+    command_structure
 }
