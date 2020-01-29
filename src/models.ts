@@ -6,7 +6,7 @@ set('useCreateIndex', true);
 set('useUnifiedTopology', true);
 
 import { database_string } from "./settings"
-import { IQuote, ISession, IImage } from '..';
+import { IQuote, ISession, IImage, IUser } from '..';
 
 connect(database_string, { useNewUrlParser: true, useUnifiedTopology: true });
 connection.on('error', console.error.bind(console, 'MongoDB connection error:'));
@@ -39,12 +39,19 @@ const SessionSchema: Schema = new Schema({
     session_data: SessionDataSchema
 })
 
+const UserSchema: Schema = new Schema({
+    user_id: String,
+    auth_level: {type: Number, default: 0}
+})
+
 const QuoteModel = model<IQuote>("QuoteModel", QuoteSchema)
 const SessionModel = model<ISession>("SessionModel", SessionSchema)
 const ImageModel = model<IImage>("ImageModel", ImageSchema)
+const UserModel = model<IUser>("UserModel", UserSchema)
 
 export {
     QuoteModel,
     ImageModel,
-    SessionModel
+    SessionModel,
+    UserModel
 }

@@ -18,6 +18,8 @@ const max_image_size = 1080
 
 const database_string = 'mongodb://127.0.0.1/data'
 
+const default_admins = ["ULY0807QR"]
+
 export {
     quote_categories,
     image_categories,
@@ -28,5 +30,6 @@ export {
     images_folder,
     fonts_folder,
     max_image_size,
-    session_timeout_ms
+    session_timeout_ms,
+    default_admins
 }

@@ -129,11 +129,11 @@ const is_valid_overflow_command = (command_str: string): command_str is keyof ty
 }
 
 const is_valid_button_command = (command_str: string): command_str is keyof typeof button_commands => {
-    return command_str in overflow_commands
+    return command_str in button_commands
 }
 
 const is_valid_message_command = (command_str: string): command_str is keyof typeof message_commands => {
-    return command_str in overflow_commands
+    return command_str in message_commands
 }
 
 const command_structure = {

@@ -38,6 +38,11 @@ interface ISession extends Document {
     session_data: SessionDataSchema
 }
 
+interface IUser extends Document {
+    user_id: string,
+    auth_level: number
+}
+
 type FontSize = (64 | 56 | 48 | 32)
 
 interface ICoordinate {

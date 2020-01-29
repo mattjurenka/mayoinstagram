@@ -1,10 +1,16 @@
-import { QuoteModel, SessionModel } from "./models"
+import { QuoteModel, SessionModel, UserModel } from "./models"
 import { WebClient } from '@slack/web-api'
-import { images_folder, fonts_folder, session_timeout_ms } from "./settings"
+import { images_folder, fonts_folder, session_timeout_ms, default_admins } from "./settings"
 import { join } from "path"
-import { ISession } from ".."
+import { ISession, IUser } from ".."
 
 const web = new WebClient(process.env.SLACK_BOT_AUTH_TOKEN)
+
+enum PermissionLevel {
+    None = 0,
+    Standard,
+    Admin
+}
 
 const post_text = async (text: string, event: any, log_message: string) => {
     await web.chat.postMessage({
@@ -80,6 +86,16 @@ const find_or_create_session = async (channel_id: string) => {
     })
 }
 
+const find_or_create_user = async (user_id: string) => {
+    return UserModel.findOne({ user_id }).orFail()
+    .catch(async () => {
+        return UserModel.create({
+            user_id,
+            auth_level: default_admins.includes(user_id) ? PermissionLevel.Admin : PermissionLevel.None
+        })
+    })
+}
+
 const get_image_filepath = (filename: string): string => join(images_folder, filename)
 
 const get_font_filepath = (font: string): string => join(fonts_folder, font, `${font}.fnt`)
@@ -94,6 +110,10 @@ const get_respond_fn = (session: ISession) => {
     }
 }
 
+const user_has_permission = (user: IUser, level: PermissionLevel): boolean => {
+    return user.auth_level >= level
+}
+
 export {
     post_text,
     post_blocks,
@@ -104,5 +124,8 @@ export {
     get_font_filepath,
     log_error,
     find_or_create_session,
-    get_respond_fn
+    get_respond_fn,
+    PermissionLevel,
+    user_has_permission,
+    find_or_create_user
 }
