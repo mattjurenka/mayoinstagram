@@ -29,6 +29,7 @@
     "mongoose": "^5.8.7",
     "request": "^2.88.0",
     "ts-node-dev": "^1.0.0-pre.44",
+    "ts-transformer-keys": "^0.4.1",
     "typescript": "^3.7.5",
     "unsplash-js": "^6.0.0"
   }

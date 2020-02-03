@@ -9,7 +9,7 @@ import {
     get_image_category_selection_blocks,
     get_plaintext_blocks
 } from "./templates"
-import { post_blocks, post_text, get_random_quote_instances, find_or_create, get_image_filepath, log_error } from "./utils"
+import { post_blocks, post_text, get_random_quote_instances, find_or_create, get_image_filepath, log_error, update_session_data } from "./utils"
 import { QuoteModel, ImageModel } from "./models"
 import {
     quote_categories,
@@ -20,15 +20,15 @@ import {
     get_inspirational_background_json,
     get_image_url_from_id,
     crop_to_square,
-    write_text_over_box
+    write_quote_over_image
 } from './images'
 import { ISession, IQuote, IImage } from '..';
 
 // Loads quotes from a hardcoded txt file to MongoDB
-const load_quotes = (event: symbol): void => {
+const load_quotes = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
     fs.createReadStream(quotes_filepath)
-        .on('error', () => {
-            console.log("Error Occurred")
+        .on('error', (err) => {
+            log_error(err, "loading quotes")
         })
         .pipe(csv({separator: ';'}))
         .on('data', (row: any) => {
@@ -39,11 +39,7 @@ const load_quotes = (event: symbol): void => {
             })
         })
         .on('end', () => {
-            post_text(
-                "Quotes Loaded",
-                event,
-                "Quotes Loaded"
-            )
+            respond(get_plaintext_blocks("Quotes Loaded"))
         })
 }
 
@@ -55,6 +51,7 @@ const select_quotes = async (session: ISession, params: string[], respond: (bloc
 //Sends 5 quotes given a category
 const get_quotes = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
     const [category] = params
+    await update_session_data(session, "quote_category", category)
     const quotes = await get_random_quote_instances(category)
     respond(get_pick_quote_section(quotes, category))
 }
@@ -99,58 +96,28 @@ const create_post = async (session: ISession, params: string[], respond: (blocks
     const quote = await QuoteModel.findById(quote_id)
     const image = await read(url)
     const cropped = await crop_to_square(image)
-    const with_text = await write_text_over_box(quote, cropped)
+    const with_text = await write_quote_over_image(quote, cropped)
     with_text.write(get_image_filepath(`${image_id}.png`))
     respond(get_plaintext_blocks(`File ${image_id}.png created`))
 }
 
 // All map the user-supplied command string to its handler function
-const overflow_commands = {
+const commands = {
     "get-quotes": get_quotes,
     "disable-author": disable_author_of_quote,
     "disable-quote": disable_quote,
     "confirm-image": confirm_image,
-    "select-image-category": select_image_category
-}
-
-const button_commands = {
-    "get-quotes": get_quotes,
-    "create-post": create_post
-}
-
-const message_commands = {
-    "get-quotes": get_quotes,
+    "select-image-category": select_image_category,
+    "create-post": create_post,
     "select-quotes": select_quotes,
     "load-quotes": load_quotes
 }
 
-const is_valid_overflow_command = (command_str: string): command_str is keyof typeof overflow_commands => {
-    return command_str in overflow_commands
-}
-
-const is_valid_button_command = (command_str: string): command_str is keyof typeof button_commands => {
-    return command_str in button_commands
-}
-
-const is_valid_message_command = (command_str: string): command_str is keyof typeof message_commands => {
-    return command_str in message_commands
-}
-
-const command_structure = {
-    overflow: {
-        commands: overflow_commands,
-        validator: is_valid_overflow_command
-    },
-    button: {
-        commands: button_commands,
-        validator: is_valid_button_command
-    },
-    message: {
-        commands: message_commands,
-        validator: is_valid_message_command
-    }
+const is_valid_command = (command_str: string): command_str is keyof typeof commands => {
+    return command_str in commands
 }
 
 export {
-    command_structure
+    commands,
+    is_valid_command
 }

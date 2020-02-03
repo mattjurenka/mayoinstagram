@@ -8,18 +8,15 @@ import { createEventAdapter } from '@slack/events-api'
 import { createMessageAdapter } from '@slack/interactive-messages'
 import {
     parse_command_string,
-    find_or_create,
     find_or_create_session,
-    post_text,
     get_respond_fn,
-    log_error,
     user_has_permission,
     PermissionLevel,
     find_or_create_user
 } from "./utils"
 
 import {
-    command_structure
+    commands, is_valid_command
 } from "./commands"
 
 import { port } from "./settings"
@@ -44,14 +41,11 @@ const handle_command = async (command_str: string, params: string[], channel_id:
     }
 
     const user = await find_or_create_user(user_id)
-
     const respond_fn = get_respond_fn(session)
-    
-    const structure:any = command_structure[action_type]
 
     if (user_has_permission(user, PermissionLevel.Admin)) {
-        if (structure.validator(command_str)) {
-            structure.commands[command_str](session, params, respond_fn)
+        if (is_valid_command(command_str)) {
+            commands[command_str](session, params, respond_fn)
                 .catch((err: Error) => {
                     respond_fn(
                         get_plaintext_blocks(`Error while executing ${command_str}: ${err.message}`)
@@ -69,14 +63,14 @@ const handle_command = async (command_str: string, params: string[], channel_id:
     }
 }
 
-slackInteractions.action({ type: 'overflow' }, async (payload) => {
+slackInteractions.action({ type: 'overflow' }, async payload => {
     const channel_id = payload.channel.id
     const [command_str, params] = parse_command_string(payload.actions[0].selected_option.value)
     const user_id = payload.user.id
     return await handle_command(command_str, params, channel_id, "overflow", user_id)
 })
 
-slackInteractions.action({ type: 'button' }, async (payload, respond) => {
+slackInteractions.action({ type: 'button' }, async payload => {
     const channel_id = payload.channel.id
     const [command_str, params] = parse_command_string(payload.actions[0].value)
     const user_id = payload.user.id
@@ -99,5 +93,5 @@ slackEvents.on("message", async (event: any) => {
 
 const server = createServer(app);
 server.listen(port, () => {
-    console.log(`Listening for events on ${port}`);
+    console.log(`MayoInstagram server running on ${port}`);
 });

@@ -25,18 +25,18 @@ const ImageSchema: Schema = new Schema({
     disabled: {type: Boolean, default: false}
 })
 
-const SessionDataSchema: Schema = new Schema({
-    image_category: {type: String, default: null},
-    quote_category: {type: String, default: null},
-    unsplash_id: {type: String, default: null},
-    image: {type: Schema.Types.ObjectId, ref: 'ImageModel', default: null},
-    quote: {type: Schema.Types.ObjectId, ref: 'QuoteModel', default: null},
-})
+const session_data_keys = ["image_category", "quote_category", "unsplash_id", "image", "quote"]
 
 const SessionSchema: Schema = new Schema({
     channel: String,
     last_updated: { type: Date, default: () => new Date()},
-    session_data: SessionDataSchema
+    session_data: {
+        image_category: { type: String, default: "" },
+        quote_category: { type: String, default: "" },
+        unsplash_id: { type: String, default: "" },
+        image: { type: Schema.Types.ObjectId, ref: 'ImageModel', default: null },
+        quote: { type: Schema.Types.ObjectId, ref: 'QuoteModel', default: null },
+    }
 })
 
 const UserSchema: Schema = new Schema({
@@ -53,5 +53,6 @@ export {
     QuoteModel,
     ImageModel,
     SessionModel,
-    UserModel
+    UserModel,
+    session_data_keys
 }

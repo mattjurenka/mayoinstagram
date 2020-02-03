@@ -20,6 +20,13 @@ const database_string = 'mongodb://127.0.0.1/data'
 
 const default_admins = ["ULY0807QR"]
 
+const quote_defaults = {
+    padding: 1/8,
+    black_box_padding: 1/16,
+    quote_author_padding: 1/16,
+    author_box_padding: 1/16,
+}
+
 export {
     quote_categories,
     image_categories,
@@ -31,5 +38,6 @@ export {
     fonts_folder,
     max_image_size,
     session_timeout_ms,
-    default_admins
+    default_admins,
+    quote_defaults
 }

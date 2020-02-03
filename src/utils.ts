@@ -1,8 +1,9 @@
-import { QuoteModel, SessionModel, UserModel } from "./models"
+import { QuoteModel, SessionModel, UserModel, session_data_keys } from "./models"
 import { WebClient } from '@slack/web-api'
 import { images_folder, fonts_folder, session_timeout_ms, default_admins } from "./settings"
 import { join } from "path"
-import { ISession, IUser } from ".."
+import { ISession, IUser, ISessionData } from ".."
+import { keys } from "ts-transformer-keys"
 
 const web = new WebClient(process.env.SLACK_BOT_AUTH_TOKEN)
 
@@ -68,10 +69,10 @@ const find_or_create_session = async (channel_id: string) => {
     const now = new Date()
     return SessionModel.findOneAndUpdate({
         channel: channel_id,
-        last_updated: {
+        /*last_updated: {
             "$gte": new Date(now.getTime() - session_timeout_ms),
             "$lte": now
-        },
+        },*/
     }, {
         last_updated: now
     })
@@ -96,6 +97,19 @@ const find_or_create_user = async (user_id: string) => {
     })
 }
 
+const update_session_data = async (session: ISession, key: string, value: any): Promise<void> => {
+    console.log({
+        [`session_data.${key}`]: value
+    })
+    SessionModel.findByIdAndUpdate(session._id, {
+            $set: {
+                [`session_data.${key}`]: value
+            }
+        }).exec().catch(err => {
+            log_error(err, "updating the session")
+        })
+}
+
 const get_image_filepath = (filename: string): string => join(images_folder, filename)
 
 const get_font_filepath = (font: string): string => join(fonts_folder, font, `${font}.fnt`)
@@ -109,6 +123,7 @@ const get_respond_fn = (session: ISession) => {
         })
     }
 }
+
 
 const user_has_permission = (user: IUser, level: PermissionLevel): boolean => {
     return user.auth_level >= level
@@ -127,5 +142,6 @@ export {
     get_respond_fn,
     PermissionLevel,
     user_has_permission,
-    find_or_create_user
+    find_or_create_user,
+    update_session_data
 }

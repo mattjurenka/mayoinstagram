@@ -22,20 +22,19 @@ interface IImage extends Document {
     disabled: boolean
 }
 
-interface SessionDataSchema extends Document {
-    _id: string,
-    image_category: string,
-    quote_category: string,
-    unsplash_id: string,
-    image_id: string,
-    quote_id: string,
+interface ISessionData {
+    image_category?: string,
+    quote_category?: string,
+    unsplash_id?: string,
+    image_id?: string,
+    quote_id?: string,
 }
 
 interface ISession extends Document {
     _id: string,
     channel: string,
     last_updated: Date,
-    session_data: SessionDataSchema
+    session_data: ISessionData
 }
 
 interface IUser extends Document {
