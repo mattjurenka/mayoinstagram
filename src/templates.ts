@@ -1,5 +1,5 @@
 import { capitalize } from "lodash"
-import { ISimpleInteractiveElement, IQuote } from ".."
+import { ISimpleInteractiveElement, IQuote, IImage } from ".."
 
 const option_template = (simple_element: ISimpleInteractiveElement): string => {
     return `{
@@ -41,7 +41,7 @@ const get_image_category_selection_blocks = (categories: string[], quote: IQuote
         return {
             text: capitalize(category),
             command: "confirm-image",
-            params: [quote._id]
+            params: [category]
         }
     })
     const option_strings = simple_elements.map(option_template)
@@ -143,10 +143,10 @@ const get_image_section = (url: string, title: string): string => {
 
 const get_pick_quote_section = (quotes: IQuote[], category: string): string => {
     const quote_sections = quotes.map(get_quote_section)
-    const action_buttons = [{
+    const action_buttons: ISimpleInteractiveElement[] = [{
         text: "Refresh Quotes",
         command: 'get-quotes',
-        params: [category]
+        params: []
     }]
     return `[
         ${get_mrkdwn_section(`Here are ${quotes.length} quotes to choose from the category ${category}:`)}\,
@@ -155,7 +155,7 @@ const get_pick_quote_section = (quotes: IQuote[], category: string): string => {
     ]`
 }
 
-const get_confirm_background_blocks = (quote: IQuote, image_data: any): string => {
+const get_confirm_background_blocks = (quote: IQuote, image_data: any, image: IImage): string => {
     const image_url = image_data.urls.small
     const full_name = `${image_data.user.first_name} ${image_data.user.last_name}`
     const image_id = image_data.id
@@ -164,17 +164,17 @@ const get_confirm_background_blocks = (quote: IQuote, image_data: any): string =
         {
             text: "Use This Image",
             command: 'create-post',
-            params: [quote._id, image_id]
+            params: [image._id]
         },
         {
             text: "Disable Image",
             command: 'disable-image',
-            params: [image_id]
+            params: [image._id]
         },
         {
             text: "Use Another Image",
-            command: 'select-image-category',
-            params: [quote._id]
+            command: 'refresh-image',
+            params: []
         }
     ]
 

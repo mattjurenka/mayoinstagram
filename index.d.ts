@@ -26,8 +26,8 @@ interface ISessionData {
     image_category?: string,
     quote_category?: string,
     unsplash_id?: string,
-    image_id?: string,
-    quote_id?: string,
+    image?: string,
+    quote?: string,
 }
 
 interface ISession extends Document {

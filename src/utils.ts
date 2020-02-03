@@ -2,7 +2,7 @@ import { QuoteModel, SessionModel, UserModel, session_data_keys } from "./models
 import { WebClient } from '@slack/web-api'
 import { images_folder, fonts_folder, session_timeout_ms, default_admins } from "./settings"
 import { join } from "path"
-import { ISession, IUser, ISessionData } from ".."
+import { ISession, IUser, ISessionData, FontSize } from ".."
 import { keys } from "ts-transformer-keys"
 
 const web = new WebClient(process.env.SLACK_BOT_AUTH_TOKEN)
@@ -34,7 +34,9 @@ const parse_command_string = (cmd_string: string): [string, string[]] => {
     const [command, param_str] = cmd_string.split(":")
     return [
         command,
-        typeof param_str == "string" ? param_str.trim().split(" ") : []
+        typeof param_str == "string" ? 
+            param_str.trim() !== "" ? param_str.trim().split(" ") : []
+        : []
     ]
 }
 
@@ -98,9 +100,6 @@ const find_or_create_user = async (user_id: string) => {
 }
 
 const update_session_data = async (session: ISession, key: string, value: any): Promise<void> => {
-    console.log({
-        [`session_data.${key}`]: value
-    })
     SessionModel.findByIdAndUpdate(session._id, {
             $set: {
                 [`session_data.${key}`]: value
@@ -111,8 +110,10 @@ const update_session_data = async (session: ISession, key: string, value: any): 
 }
 
 const get_image_filepath = (filename: string): string => join(images_folder, filename)
+const get_artifact = (filename: string): string => get_image_filepath(join("artifacts", filename))
+const get_output_filepath = (filename: string): string => get_image_filepath(join("completed", filename))
 
-const get_font_filepath = (font: string): string => join(fonts_folder, font, `${font}.fnt`)
+const get_font_filepath = (font: string, size: FontSize): string => join(fonts_folder, font, `${font}${size}.fnt`)
 
 const get_respond_fn = (session: ISession) => {
     return (blocks: any) => {
@@ -135,7 +136,6 @@ export {
     parse_command_string,
     get_random_quote_instances,
     find_or_create,
-    get_image_filepath,
     get_font_filepath,
     log_error,
     find_or_create_session,
@@ -143,5 +143,7 @@ export {
     PermissionLevel,
     user_has_permission,
     find_or_create_user,
-    update_session_data
+    update_session_data,
+    get_artifact,
+    get_output_filepath
 }

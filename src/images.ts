@@ -5,7 +5,7 @@ import {
     BLEND_SOURCE_OVER,
     measureTextHeight
 } from "jimp"
-import { get_font_filepath, get_image_filepath, log_error } from './utils';
+import { get_font_filepath, log_error, get_artifact } from './utils';
 import { max_image_size, quote_defaults } from './settings';
 import { FontSize, IQuote, ICoordinate } from '..';
 import Jimp = require('jimp');
@@ -15,10 +15,10 @@ require('isomorphic-fetch');
 
 const unsplash = new Unsplash({ accessKey: process.env.UNSPLASH_ACCESS_KEY})
 
-// Default function is broken
+// Default Jimp measure text function is broken
 const measure_text_height = async (font: any, text: string, max_width: number): Promise<number> => {
     let height = 0
-    const test_image = await read(get_image_filepath("artifacts/measure.png"))
+    const test_image = await read(get_artifact("measure.png"))
     test_image.print(font, 0, 0, { text }, max_width, (err:any, image:any, end_coords:any) => {
         height = end_coords.y
     })
@@ -27,7 +27,7 @@ const measure_text_height = async (font: any, text: string, max_width: number): 
 
 const measure_text_width = async (font: any, text: string): Promise<number> => {
     let width = 0
-    const test_image = await read(get_image_filepath("artifacts/measure.png"))
+    const test_image = await read(get_artifact("measure.png"))
     test_image.print(font, 0, 0, { text }, (err:any, image:any, end_coords:any) => {
         width = end_coords.x
     })
@@ -40,9 +40,9 @@ const get_quote_font_size = (width: Number): FontSize => {
     return 32
 }
 
-const get_inspirational_background_json = async (): Promise<any> => {
+const get_inspirational_background_json = async (query: string): Promise<any> => {
     try {
-        const random_photo = await unsplash.photos.getRandomPhoto({ query: "trees" })
+        const random_photo = await unsplash.photos.getRandomPhoto({ query })
         return toJson(random_photo)
     } catch (err) {
         log_error(err, "getting background image")
@@ -51,7 +51,6 @@ const get_inspirational_background_json = async (): Promise<any> => {
 
 const get_image_url_from_id = async (image_id: string): Promise<string> => {
     try {
-        
         const photo = await unsplash.photos.getPhoto(image_id)
         const json = await toJson(photo)
         return json.urls.regular
@@ -102,7 +101,7 @@ const write_quote_over_image = async (quote: IQuote, image: any): Promise<any> =
         const quote_author_gap = width * quote_defaults.quote_author_padding
 
         const font_size = get_quote_font_size(width)
-        const font = await loadFont(get_font_filepath("merriweather"))
+        const font = await loadFont(get_font_filepath("merriweather", font_size))
 
         const quote_text_height = await measure_text_height(font, text, quote_text_width)
         const quote_vertical_padding = quote_box_width - quote_text_width
@@ -175,12 +174,12 @@ const overlay_black_box = async (image: any, top_left: ICoordinate, bottom_right
         const height = bottom_right.y - top_left.y
         const width = bottom_right.x - top_left.x
         
-        const black_box = await read(get_image_filepath("black.png"))
+        const black_box = await read(get_artifact("black.png"))
         const resized_box = black_box.resize(width, height)
         return image.composite(resized_box, top_left.x, top_left.y, {
             mode: BLEND_SOURCE_OVER,
             opacityDest: 1,
-            opacitySource: 0.5
+            opacitySource: 0.8
         })
     } catch(err) {
         log_error(err, "overlaying black box over background")
