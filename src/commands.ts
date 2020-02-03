@@ -119,11 +119,19 @@ const create_post = async (session: ISession, params: string[], respond: (blocks
     respond(get_plaintext_blocks(`File ${image_id}.png created`))
 }
 
+const disable_image = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
+    const [image_id] = params
+    ImageModel.findByIdAndUpdate(image_id, {
+        disabled: true
+    })
+}
+
 // All map the user-supplied command string to its handler function
 const commands = {
     "get-quotes": get_quotes,
     "disable-author": disable_author_of_quote,
     "disable-quote": disable_quote,
+    "disable-image": disable_image,
     "refresh-image": refresh_image,
     "confirm-image": confirm_image,
     "select-image-category": select_image_category,
