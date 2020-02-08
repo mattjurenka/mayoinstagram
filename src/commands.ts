@@ -24,9 +24,10 @@ import {
 } from './images'
 import { ISession, IQuote, IImage } from '..';
 import { get } from 'lodash';
+import { load_facts } from './facts/commands';
 
 // Loads quotes from a hardcoded txt file to MongoDB
-const load_quotes = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
+const load_quotes = async (session: ISession, params: any, respond: (blocks: any) => void) => {
     fs.createReadStream(quotes_filepath)
         .on('error', (err) => {
             log_error(err, "loading quotes")
@@ -45,13 +46,13 @@ const load_quotes = async (session: ISession, params: string[], respond: (blocks
 }
 
 // Sends a block where a user can select a category of quotes
-const select_quotes = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
+const select_quotes = async (session: ISession, params: any, respond: (blocks: any) => void) => {
     respond(get_category_selection_blocks(quote_categories))
 }
 
 //Sends 5 quotes given a category
-const get_quotes = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
-    const category = get(params, [0], session.session_data.quote_category)
+const get_quotes = async (session: ISession, params: any, respond: (blocks: any) => void) => {
+    const category = get(params, "category", session.session_data.quote_category)
     await update_session_data(session, "quote_category", category)
 
     const quotes = await get_random_quote_instances(category)
@@ -59,8 +60,8 @@ const get_quotes = async (session: ISession, params: string[], respond: (blocks:
 }
 
 // Disables a quote given a quote ID
-const disable_quote = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
-    const [quote_id] = params
+const disable_quote = async (session: ISession, params: any, respond: (blocks: any) => void) => {
+    const {quote_id} = params
 
     try {
         const quote = await QuoteModel.findOneAndUpdate({ _id: quote_id }, { disabled: true }).orFail()
@@ -71,8 +72,8 @@ const disable_quote = async (session: ISession, params: string[], respond: (bloc
 }
 
 // Disables all quotes by a given author
-const disable_author_of_quote = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
-    const [quote_id] = params
+const disable_author_of_quote = async (session: ISession, params: any, respond: (blocks: any) => void) => {
+    const {quote_id} = params
     
     const quote = await QuoteModel.findById(quote_id)
     const author = quote.author
@@ -80,8 +81,8 @@ const disable_author_of_quote = async (session: ISession, params: string[], resp
     respond(get_plaintext_blocks(`Disabled all quotes from ${author}`))
 }
 
-const confirm_image = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
-    const category = get(params, [0], session.session_data.image_category)
+const confirm_image = async (session: ISession, params: any, respond: (blocks: any) => void) => {
+    const category = get(params, "category", session.session_data.image_category)
     const quote = await QuoteModel.findById(session.session_data.quote)
     await update_session_data(session, "image_category", category)
 
@@ -90,21 +91,21 @@ const confirm_image = async (session: ISession, params: string[], respond: (bloc
     respond(get_confirm_background_blocks(quote, image_data, image))
 }
 
-const select_image_category = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
-    const [quote_id] = params
+const select_image_category = async (session: ISession, params: any, respond: (blocks: any) => void) => {
+    const {quote_id} = params
     await update_session_data(session, "quote", quote_id)
 
     const quote = await QuoteModel.findById(quote_id)
     respond(get_image_category_selection_blocks(image_categories, quote))
 }
 
-const refresh_image = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
+const refresh_image = async (session: ISession, params: any, respond: (blocks: any) => void) => {
     const quote = await QuoteModel.findById(session.session_data.quote)
     respond(get_image_category_selection_blocks(image_categories, quote))
 }
 
-const create_post = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
-    const [image_id] = params
+const create_post = async (session: ISession, params: any, respond: (blocks: any) => void) => {
+    const {image_id} = params
     const image_db_object = await ImageModel.findById(image_id)
     await update_session_data(session, "image", image_db_object._id)
     const quote = await QuoteModel.findById(session.session_data.quote)
@@ -119,11 +120,15 @@ const create_post = async (session: ISession, params: string[], respond: (blocks
     respond(get_plaintext_blocks(`File ${image_id}.png created`))
 }
 
-const disable_image = async (session: ISession, params: string[], respond: (blocks: any) => void) => {
-    const [image_id] = params
+const disable_image = async (session: ISession, params: any, respond: (blocks: any) => void) => {
+    const {image_id} = params
     ImageModel.findByIdAndUpdate(image_id, {
         disabled: true
     })
+}
+
+const error = async (session: ISession, params: any, respond: (blocks: any) => void) => {
+    respond(get_plaintext_blocks("An error occurred while proccessing your command"))
 }
 
 // All map the user-supplied command string to its handler function
@@ -138,6 +143,8 @@ const commands = {
     "create-post": create_post,
     "select-quotes": select_quotes,
     "load-quotes": load_quotes,
+    "load-facts": load_facts,
+    "error": error
 }
 
 const is_valid_command = (command_str: string): command_str is keyof typeof commands => {

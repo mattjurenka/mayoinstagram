@@ -12,7 +12,8 @@ import {
     get_respond_fn,
     user_has_permission,
     PermissionLevel,
-    find_or_create_user
+    find_or_create_user,
+    parse_message_as_command
 } from "./utils"
 
 import {
@@ -21,7 +22,7 @@ import {
 
 import { port } from "./settings"
 import { get_plaintext_blocks } from './templates';
-import { Action } from '..';
+import { Action, ICommandJSON } from '..';
 import { UserModel } from './models';
 
 const slackEvents:any = createEventAdapter(process.env.SLACK_SIGNING_SECRET);
@@ -32,8 +33,9 @@ app.use('/slack/events', slackEvents.expressMiddleware());
 app.use('/slack/actions', slackInteractions.expressMiddleware())
 app.use(bodyParser.json());
 
-const handle_command = async (command_str: string, params: string[], channel_id: string, action_type: Action, user_id: string) => {
-    console.log(`Incoming command: ${command_str} of type: ${action_type}, with params: ${params.join(", ")}`)
+const handle_command = async (command_obj: ICommandJSON, channel_id: string, action_type: Action, user_id: string) => {
+    const command_str = command_obj.command
+    console.log(`Incoming command: ${command_str} of type: ${action_type}, with params: ${JSON.stringify(command_obj.params)}`)
     
     const session = await find_or_create_session(channel_id)
     if(!session) return {
@@ -45,7 +47,7 @@ const handle_command = async (command_str: string, params: string[], channel_id:
 
     if (user_has_permission(user, PermissionLevel.Admin)) {
         if (is_valid_command(command_str)) {
-            commands[command_str](session, params, respond_fn)
+            commands[command_str](session, command_obj.params, respond_fn)
                 .catch((err: Error) => {
                     respond_fn(
                         get_plaintext_blocks(`Error while executing ${command_str}: ${err.message}`)
@@ -65,16 +67,16 @@ const handle_command = async (command_str: string, params: string[], channel_id:
 
 slackInteractions.action({ type: 'overflow' }, async payload => {
     const channel_id = payload.channel.id
-    const [command_str, params] = parse_command_string(payload.actions[0].selected_option.value)
+    const command_obj = await parse_command_string(payload.actions[0].selected_option.value)
     const user_id = payload.user.id
-    return await handle_command(command_str, params, channel_id, "overflow", user_id)
+    return await handle_command(command_obj, channel_id, "overflow", user_id)
 })
 
 slackInteractions.action({ type: 'button' }, async payload => {
     const channel_id = payload.channel.id
-    const [command_str, params] = parse_command_string(payload.actions[0].value)
+    const command_obj = await parse_command_string(payload.actions[0].value)
     const user_id = payload.user.id
-    return await handle_command(command_str, params, channel_id, "button", user_id)
+    return await handle_command(command_obj, channel_id, "button", user_id)
 })
 
 slackEvents.on("message", async (event: any) => {
@@ -82,8 +84,8 @@ slackEvents.on("message", async (event: any) => {
         if (event.channel_type === "im") {
             const channel_id = event.channel
             const user_id = event.user
-            const [command_str, params] = parse_command_string(event.text)
-            return await handle_command(command_str, params, channel_id, "message", user_id)
+            const command_obj = await parse_message_as_command(event.text)
+            return await handle_command(command_obj, channel_id, "message", user_id)
         }
     }
     return {

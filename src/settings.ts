@@ -27,6 +27,11 @@ const quote_defaults = {
     author_box_padding: 1/16,
 }
 
+const fact_defaults = {
+    padding: 1/8,
+    fact_box_padding: 1/16
+}
+
 export {
     quote_categories,
     image_categories,
@@ -39,5 +44,6 @@ export {
     max_image_size,
     session_timeout_ms,
     default_admins,
-    quote_defaults
+    quote_defaults,
+    fact_defaults
 }

@@ -6,7 +6,7 @@ set('useCreateIndex', true);
 set('useUnifiedTopology', true);
 
 import { database_string } from "./settings"
-import { IQuote, ISession, IImage, IUser } from '..';
+import { IQuote, ISession, IImage, IUser, IFact } from '..';
 
 connect(database_string, { useNewUrlParser: true, useUnifiedTopology: true });
 connection.on('error', console.error.bind(console, 'MongoDB connection error:'));
@@ -36,6 +36,7 @@ const SessionSchema: Schema = new Schema({
         unsplash_id: { type: String, default: "" },
         image: { type: Schema.Types.ObjectId, ref: 'ImageModel', default: null },
         quote: { type: Schema.Types.ObjectId, ref: 'QuoteModel', default: null },
+        fact: { type: Schema.Types.ObjectId, ref: "FactModel", default: null },
     }
 })
 
@@ -44,15 +45,22 @@ const UserSchema: Schema = new Schema({
     auth_level: {type: Number, default: 0}
 })
 
+const FactSchema: Schema = new Schema({
+    fact: String,
+    disabled: {type: Boolean, default: false},
+    already_used: {type: Boolean, default: false}
+})
+
 const QuoteModel = model<IQuote>("QuoteModel", QuoteSchema)
 const SessionModel = model<ISession>("SessionModel", SessionSchema)
 const ImageModel = model<IImage>("ImageModel", ImageSchema)
 const UserModel = model<IUser>("UserModel", UserSchema)
+const FactModel = model<IFact>("FactModel", FactSchema)
 
 export {
     QuoteModel,
     ImageModel,
     SessionModel,
     UserModel,
-    session_data_keys
+    FactModel
 }

@@ -2,8 +2,10 @@ import { Document } from "mongoose"
 
 interface ISimpleInteractiveElement {
     text: string,
-    command: string,
-    params: string[]
+    command_obj: {
+        command: string,
+        params: any
+    }
 }
 
 interface IQuote extends Document {
@@ -28,6 +30,7 @@ interface ISessionData {
     unsplash_id?: string,
     image?: string,
     quote?: string,
+    fact?: string,
 }
 
 interface ISession extends Document {
@@ -38,8 +41,16 @@ interface ISession extends Document {
 }
 
 interface IUser extends Document {
+    _id: string,
     user_id: string,
     auth_level: number
+}
+
+interface IFact extends Document {
+    _id: string,
+    text: string,
+    disabled: boolean,
+    already_used: boolean
 }
 
 type FontSize = (64 | 56 | 48 | 32)
@@ -47,6 +58,11 @@ type FontSize = (64 | 56 | 48 | 32)
 interface ICoordinate {
     x: number,
     y: number
+}
+
+interface ICommandJSON {
+    command: string,
+    params: any
 }
 
 type Action = ("button" | "overflow" | "message")

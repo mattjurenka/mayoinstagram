@@ -8,7 +8,7 @@ const option_template = (simple_element: ISimpleInteractiveElement): string => {
             "text": "${simple_element.text}",
             "emoji": true
         },
-        "value": "${simple_element.command}: ${simple_element.params.join(" ")}"
+        "value": "${JSON.stringify(simple_element.command_obj)}"
     }`
 }
 
@@ -16,8 +16,12 @@ const get_category_selection_blocks = (categories: string[]): string => {
     const simple_elements = categories.map((category) => {
         return {
             text: capitalize(category),
-            command: "get-quotes",
-            params: [category.toLowerCase()]
+            command_obj: {
+                command: "get-quotes",
+                params: {
+                    category: category.toLowerCase()
+                }
+            }
         }
     })
     const option_strings = simple_elements.map(option_template)
@@ -40,8 +44,12 @@ const get_image_category_selection_blocks = (categories: string[], quote: IQuote
     const simple_elements = categories.map((category) => {
         return {
             text: capitalize(category),
-            command: "confirm-image",
-            params: [category]
+            command_obj: {
+                command: "confirm-image",
+                params: {
+                    category
+                }
+            }
         }
     })
     const option_strings = simple_elements.map(option_template)
@@ -64,18 +72,30 @@ const get_quote_section = (quote: IQuote): string => {
     const overflow_elements: ISimpleInteractiveElement[] = [
         {
             text: "Choose Quote",
-            command: 'select-image-category',
-            params: [quote._id]
+            command_obj: {
+                command: 'select-image-category',
+                params: {
+                    quote_id: quote._id
+                }
+            }
         },
         {
             text: "Disable Quote",
-            command: 'disable-quote',
-            params: [quote._id]
+            command_obj: {
+                command: 'disable-quote',
+                params: {
+                    quote_id: quote._id
+                }
+            }
         },
         {
             text: "Disable All Quotes by Author",
-            command: 'disable-author',
-            params: [quote._id]
+            command_obj: {
+                command: 'disable-author',
+                params: {
+                    quote_id: quote._id
+                }
+            }
         }
     ]
     const option_strings = overflow_elements.map(option_template)
@@ -104,7 +124,7 @@ const get_button_section = (button_element: ISimpleInteractiveElement): string =
             "text": "${button_element.text}",
             "emoji": true
         },
-        "value": "${button_element.command}: ${button_element.params.join(" ")}"
+        "value": "${JSON.stringify(button_element.command_obj)}"
     }`
 }
 
@@ -145,8 +165,10 @@ const get_pick_quote_section = (quotes: IQuote[], category: string): string => {
     const quote_sections = quotes.map(get_quote_section)
     const action_buttons: ISimpleInteractiveElement[] = [{
         text: "Refresh Quotes",
-        command: 'get-quotes',
-        params: []
+        command_obj: {
+            command: 'get-quotes',
+            params: {},
+        }
     }]
     return `[
         ${get_mrkdwn_section(`Here are ${quotes.length} quotes to choose from the category ${category}:`)}\,
@@ -163,19 +185,29 @@ const get_confirm_background_blocks = (quote: IQuote, image_data: any, image: II
     const button_elements: ISimpleInteractiveElement[] = [
         {
             text: "Use This Image",
-            command: 'create-post',
-            params: [image._id]
+            command_obj: {
+                command: 'create-post',
+                params: {
+                    image_id: image._id
+                }
+            }
         },
         {
             text: "Disable Image",
-            command: 'disable-image',
-            params: [image._id]
+            command_obj: {
+                command: 'disable-image',
+                params: {
+                    image_id: image._id
+                }
+            }
         },
         {
-            text: "Use Another Image",
-            command: 'refresh-image',
-            params: []
-        }
+            text: "Get Another Image",
+            command_obj: {
+                command: 'refresh-image',
+                params: {}
+            }
+        },
     ]
 
     return `[
@@ -202,5 +234,7 @@ export {
     get_pick_quote_section,
     get_confirm_background_blocks,
     get_image_category_selection_blocks,
-    get_plaintext_blocks
+    get_plaintext_blocks,
+    get_mrkdwn_section,
+    get_actions_section
 }

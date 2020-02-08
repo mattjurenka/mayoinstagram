@@ -1,9 +1,8 @@
-import { QuoteModel, SessionModel, UserModel, session_data_keys } from "./models"
+import { QuoteModel, SessionModel, UserModel } from "./models"
 import { WebClient } from '@slack/web-api'
 import { images_folder, fonts_folder, session_timeout_ms, default_admins } from "./settings"
 import { join } from "path"
-import { ISession, IUser, ISessionData, FontSize } from ".."
-import { keys } from "ts-transformer-keys"
+import { ISession, IUser, ISessionData, FontSize, ICommandJSON } from ".."
 
 const web = new WebClient(process.env.SLACK_BOT_AUTH_TOKEN)
 
@@ -30,14 +29,59 @@ const post_blocks = async (blocks: any, event: any, log_message: string) => {
     console.log(log_message)
 }
 
-const parse_command_string = (cmd_string: string): [string, string[]] => {
-    const [command, param_str] = cmd_string.split(":")
-    return [
-        command,
-        typeof param_str == "string" ? 
-            param_str.trim() !== "" ? param_str.trim().split(" ") : []
-        : []
-    ]
+const parse_command_string = async (cmd_string: string): Promise<ICommandJSON> => {
+    try {
+        return JSON.parse(cmd_string)
+    } catch (err) {
+        return {
+            command: "error",
+            params: {
+                err
+            }
+        }
+    }
+}
+
+const parse_message_as_command = async (message: string): Promise<ICommandJSON> => {
+    try {
+        const trimmed = message.trim()
+        if (trimmed === "") {
+            return {
+                command: "none",
+                params: {}
+            }
+        }
+
+        const split = trimmed.split(":")
+        if (split.length <= 1) {
+            return {
+                command: split[0],
+                params: {}
+            }
+        } else {
+            const param_pairs = split[1].trim().split(" ")
+            const param_pairs_arr = param_pairs
+                .map(val => val.trim())
+                .filter(val => val !== "")
+                .map(val => val.split("="))
+                .filter(val => val.length === 2)
+            const params:any = {}
+            param_pairs_arr.forEach(val => {
+                params[val[0]] = val[1]
+            })
+            return {
+                command: split[0],
+                params
+            }
+        }
+    } catch (err) {
+        return {
+            command: "error",
+            params: {
+                err
+            }
+        }
+    }
 }
 
 const get_random_quote_instances = async (category: string) => {
@@ -145,5 +189,6 @@ export {
     find_or_create_user,
     update_session_data,
     get_artifact,
-    get_output_filepath
+    get_output_filepath,
+    parse_message_as_command
 }

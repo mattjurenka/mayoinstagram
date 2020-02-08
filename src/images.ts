@@ -191,5 +191,8 @@ export {
     get_image_url_from_id,
     crop_to_square,
     write_quote_over_image,
-    resize_to_maximum
+    resize_to_maximum,
+    measure_text_height,
+    measure_text_width,
+    overlay_black_box
 }
