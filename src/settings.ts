@@ -3,7 +3,7 @@ import { join } from 'path'
 const quote_categories = ["Business", "Happiness", "Money"]
 const image_categories = ["Sunset", "Skyline", "Trees"]
 
-const project_filepath = "C:/Users/MJ Programming/Desktop/mayo/mayoinstagram"
+const project_filepath = "../"
 
 const quotes_filepath = join(project_filepath, "raw_data", "quotes.txt")
 const images_folder = join(project_filepath, "images")
@@ -18,7 +18,7 @@ const max_image_size = 1080
 
 const database_string = 'mongodb://127.0.0.1/data'
 
-const default_admins = ["ULY0807QR"]
+const default_admins = [""]
 
 const quote_defaults = {
     padding: 1/8,
